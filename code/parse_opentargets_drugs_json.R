@@ -1,4 +1,4 @@
-release <- '2022.06'
+release <- '2023.12'
 
 ####---- GENE CROSSREF----####
 gene_oncox <- list()
@@ -17,8 +17,10 @@ gene_xref <- dplyr::bind_rows(
                   entrezgene, ensembl_gene_id),
     by = c("entrezgene")),
   dplyr::inner_join(
-    dplyr::select(gene_oncox[['basic']]$records, entrezgene, symbol, name, gene_biotype),
-    dplyr::select(gene_oncox[['gencode']]$records$grch37, entrezgene, ensembl_gene_id),
+    dplyr::select(gene_oncox[['basic']]$records, 
+                  entrezgene, symbol, name, gene_biotype),
+    dplyr::select(gene_oncox[['gencode']]$records$grch37, 
+                  entrezgene, ensembl_gene_id),
     by = c("entrezgene"))) |>
   dplyr::filter(!is.na(ensembl_gene_id)) |>
   dplyr::rename(target_genename = name,
@@ -31,6 +33,7 @@ gene_xref <- dplyr::bind_rows(
                 target_ensembl_gene_id) |>
   dplyr::distinct()
   
+
 
 ####-- MOLECULES --####
 
@@ -174,6 +177,11 @@ for(json_chunk_lines in sort(json_files)){
             }
             j <- j + 1
           }
+      }else{
+        df$target_ensembl_gene_id <- NA
+        OT_drugs <- OT_drugs |>
+          dplyr::bind_rows(df)
+        
       }
     }else{
       df$target_ensembl_gene_id <- NA
@@ -382,6 +390,11 @@ for(json_chunk_lines in json_files){
     if(!is.null(indication_item$id)){
       molecule_chembl_id <- indication_item$id
     }
+    
+    # if(molecule_chembl_id == "CHEMBL2165191"){
+    #   cat(m,i,sep=" - ")
+    # }
+    
     df <- data.frame(
       'molecule_chembl_id' =  molecule_chembl_id,
       stringsAsFactors = F)
@@ -553,6 +566,10 @@ OT_drugs_indication_final <-
   dplyr::arrange(target_symbol)
 
 saveRDS(OT_drugs_indication_final, 
-        file = paste0("output/opentargets_drugs_",
-                      release,".rds"))
+        file = file.path(
+          "output",
+          paste0(
+            "opentargets_drugs_",
+            release,".rds"))
+)
         

@@ -1,4 +1,4 @@
-release <- '2022.06'
+release <- '2023.12'
 
 ####---- TARGETS ----####
 
@@ -264,8 +264,10 @@ OT_target_clean <- OT_target |>
 
 
 saveRDS(OT_target_clean, 
-        file = paste0("output/opentargets_target_",
-                      release,".rds"))
+        file = file.path(
+          "output", 
+          paste0("opentargets_target_",
+                 release,".rds")))
 
 rm(OT_target)
 rm(target_data)

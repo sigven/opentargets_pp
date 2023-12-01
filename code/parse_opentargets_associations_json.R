@@ -1,4 +1,4 @@
-release <- '2022.06'
+release <- '2023.12'
 
 ####---- ASSOCIATIONS - OVERALL ----####
 
@@ -36,8 +36,12 @@ for(json_chunk_lines in json_files){
   
   close.connection(con)
   saveRDS(OT_association, 
-          file = paste0("output/association/OT_overall_association_",
-                        release,"_",m,".rds"))
+          file = file.path(
+            "output", "association",
+            paste0(
+              "OT_overall_association_",
+              release,"_",m,".rds"))
+  )
   OT_association <- data.frame()
   m <- m + 1
 }
@@ -81,8 +85,11 @@ for(json_chunk_lines in json_files){
   }
   close.connection(con)
   saveRDS(OT_datasource_association, 
-          file = paste0("output/association/OT_datasource_association_",
-                        release,"_",m,".rds"))
+          file = file.path(
+            "output","association",
+            paste0("OT_datasource_association_",
+                   release,"_",m,".rds"))
+  )
   OT_datasource_association <- data.frame()
   m <- m + 1
 }
@@ -125,8 +132,11 @@ for(json_chunk_lines in json_files){
   }
   close.connection(con)
   saveRDS(OT_datatype_association, 
-          file = paste0("output/association/OT_datatype_association_",
-                        release,"_",m,".rds"))
+          file = file.path(
+            "output","association",
+            paste0("OT_datatype_association_",
+                   release,"_",m,".rds"))
+  )
   OT_datatype_association <- data.frame()
   m <- m + 1
 }
@@ -179,7 +189,9 @@ for(json_chunk_lines in json_files){
 
 
 opentargets_target <- 
-  readRDS(file=paste0("output/opentargets_target_",release,".rds"))
+  readRDS(file = file.path(
+    "output",
+    paste0("opentargets_target_",release,".rds")))
 
 i <- 0
 
@@ -190,11 +202,25 @@ all_datatypes <- data.frame()
 while(i <= 199){
   
   overallAssoc <- 
-    readRDS(file=paste0("output/association/OT_overall_association_",release,"_",i,".rds"))
+    readRDS(file = file.path(
+      "output","association",
+      paste0(
+        "OT_overall_association_",
+        release,"_",i,".rds"))
+    )
   datatypeAssoc <- 
-    readRDS(file=paste0("output/association/OT_datatype_association_",release,"_",i,".rds"))
+    readRDS(file = file.path(
+      "output","association",
+      paste0(
+      "OT_datatype_association_", 
+      release,"_",i,".rds"))
+    )
   datasourceAssoc <- 
-    readRDS(file=paste0("output/association/OT_datasource_association_",release,"_",i,".rds"))
+    readRDS(file = file.path(
+      "output","association",
+      paste0("OT_datasource_association_",
+             release,"_",i,".rds"))
+    )
   
   datatype_df <- as.data.frame(
     datatypeAssoc |>
@@ -223,15 +249,21 @@ while(i <= 199){
     overallAssoc |>
       dplyr::mutate(score = round(score, digits = 12)) |>
       dplyr::mutate(json_chunk = i) |>
-      dplyr::left_join(datatype_df, by = c("disease_id","target_id")) |>
-      dplyr::left_join(datasource_df, by = c("disease_id","target_id")) |>
+      dplyr::left_join(
+        datatype_df, by = c("disease_id","target_id"),
+        relationship = "many-to-many") |>
+      dplyr::left_join(
+        datasource_df, by = c("disease_id","target_id"),
+        relationship = "many-to-many") |>
       dplyr::rename(target_ensembl_gene_id = target_id) |>
       dplyr::left_join(
         dplyr::select(opentargets_target, target_symbol, target_ensembl_gene_id),
-        by = c("target_ensembl_gene_id")) |>
+        by = c("target_ensembl_gene_id"),
+        relationship = "many-to-many") |>
       dplyr::left_join(
         dplyr::select(OT_diseases, disease_id, name),
-        by = "disease_id") |>
+        by = "disease_id", 
+        relationship = "many-to-many") |>
       dplyr::rename(disease_label = name)
   )
 
@@ -243,8 +275,11 @@ while(i <= 199){
 
 
 saveRDS(OT_association_all, 
-        file=paste0("output/opentargets_association_direct_",
-                    release,".rds"))
+        file = file.path(
+          "output",
+          paste0("opentargets_association_direct_",
+                 release,".rds"))
+)
         
 OT_association_hc <- OT_association_all |>
   dplyr::filter(!stringr::str_detect(
@@ -252,6 +287,9 @@ OT_association_hc <- OT_association_all |>
   dplyr::filter(stringr::str_detect(datatype_items,","))
 
 saveRDS(OT_association_hc, 
-        file=paste0("output/opentargets_association_direct_HC_",
-                    release,".rds"))
+        file = file.path(
+          "output",
+          paste0("opentargets_association_direct_HC_",
+                 release,".rds"))
+)
 

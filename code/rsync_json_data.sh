@@ -1,6 +1,6 @@
 #!/bin/sh
 
-release="22.06"
+release="23.12"
 
 rsync -rpltvz --delete rsync.ebi.ac.uk::pub/databases/opentargets/platform/$release/output/etl/json/targets .
 rsync -rpltvz --delete rsync.ebi.ac.uk::pub/databases/opentargets/platform/$release/output/etl/json/molecule .
