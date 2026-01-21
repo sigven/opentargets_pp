@@ -1,4 +1,6 @@
-release <- '2023.12'
+#!/usr/local/bin/Rscript
+
+release <- '2024.09'
 
 ####---- ASSOCIATIONS - OVERALL ----####
 
@@ -281,10 +283,35 @@ saveRDS(OT_association_all,
                  release,".rds"))
 )
         
-OT_association_hc <- OT_association_all |>
+#OT_association_hc <- OT_association_all |>
+#  dplyr::filter(!stringr::str_detect(
+#    tolower(disease_label),"^(neoplasm|cancer)$| neoplasm$")) |>
+#  dplyr::filter(stringr::str_detect(datatype_items,","))
+
+OT_associations_multiple_types <- OT_association_all |>
   dplyr::filter(!stringr::str_detect(
-    tolower(disease_label),"^(neoplasm|cancer)$| neoplasm$")) |>
+    tolower(disease_label),"^(neoplasm|cancer)$")) |>
   dplyr::filter(stringr::str_detect(datatype_items,","))
+
+OT_associations_single_types <- OT_association_all |>
+  dplyr::filter(!stringr::str_detect(
+    tolower(disease_label),"^(neoplasm|cancer)$")) |>
+  dplyr::filter(!stringr::str_detect(datatype_items,",")) |>
+  tidyr::separate(datatype_items, 
+                  c("type","type_count","type_score"),sep = "\\|", remove = F) |>
+  dplyr::filter(type != "rna_expression") |>
+  dplyr::filter(type != "known_drug") |>
+  dplyr::filter(type != "literature" |
+                  (type == "literature" & evidence_count > 4)) |>
+  dplyr::filter(type != "somatic_mutation" |
+                  (type == "somatic_mutation" & 
+                     ("cancer_gene_census" %in% datasource_items |
+                     stringr::str_detect(datasource_items,",")))) |>
+  dplyr::select(-c("type_count","type_score","type"))
+  
+OT_association_hc <- OT_associations_single_types |>
+  dplyr::bind_rows(OT_associations_multiple_types) |>
+  dplyr::arrange(dplyr::desc(score))
 
 saveRDS(OT_association_hc, 
         file = file.path(

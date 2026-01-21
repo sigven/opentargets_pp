@@ -1,6 +1,6 @@
 #!/bin/sh
 
-release="23.12"
+release="25.06"
 
 rsync -rpltvz --delete rsync.ebi.ac.uk::pub/databases/opentargets/platform/$release/output/etl/json/targets .
 rsync -rpltvz --delete rsync.ebi.ac.uk::pub/databases/opentargets/platform/$release/output/etl/json/molecule .
@@ -12,3 +12,7 @@ rsync -rpltvz --delete rsync.ebi.ac.uk::pub/databases/opentargets/platform/$rele
 rsync -rpltvz --delete rsync.ebi.ac.uk::pub/databases/opentargets/platform/$release/output/etl/json/mechanismOfAction .
 rsync -rpltvz --delete rsync.ebi.ac.uk::pub/databases/opentargets/platform/$release/output/etl/json/indication .
 rsync -rpltvz --delete rsync.ebi.ac.uk::pub/databases/opentargets/platform/$release/output/etl/json/diseases .
+rsync -rpltvz --delete rsync.ebi.ac.uk::pub/databases/opentargets/platform/$release/output/etl/json/baselineExpression .
+rsync -rpltvz --delete rsync.ebi.ac.uk::pub/databases/opentargets/platform/$release/output/etl/json/targetEssentiality .
+rsync -rpltvz --delete rsync.ebi.ac.uk::pub/databases/opentargets/platform/$release/output/etl/json/targetPrioritisation .
+rsync -rpltvz --delete rsync.ebi.ac.uk::pub/databases/opentargets/platform/$release/output/etl/json/pharmacogenomics .

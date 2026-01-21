@@ -1,4 +1,6 @@
-release <- '2023.12'
+#!/usr/local/bin/Rscript
+
+release <- '2024.09'
 
 ####---- GENE CROSSREF----####
 gene_oncox <- list()
@@ -306,7 +308,6 @@ for(json_chunk_lines in json_files){
     }
     i <- i + 1
   }
-  close.connection(con)
   m <- m + 1
 }
 
@@ -329,10 +330,10 @@ OT_drugs_no_ensembl$target_entrezgene <- NULL
 OT_moa_no_ensembl$target_ensembl_gene_id <- NULL
 
 set1 <- OT_drugs_ensembl |> 
-  dplyr::full_join(OT_moa_ensembl) |>
+  dplyr::full_join(OT_moa_ensembl, relationship = "many-to-many") |>
   dplyr::filter(!is.na(target_symbol))
 set2 <- OT_drugs_no_ensembl |> 
-  dplyr::full_join(OT_moa_no_ensembl) |>
+  dplyr::full_join(OT_moa_no_ensembl, relationship = "many-to-many") |>
   dplyr::filter(!is.na(drug_name)) |>
   dplyr::arrange(drug_name)
 
@@ -490,7 +491,7 @@ for(json_chunk_lines in json_files){
 
 OT_drugs_indication <- as.data.frame(
   OT_drugs_moa_final |> 
-    dplyr::full_join(OT_indication) |>
+    dplyr::full_join(OT_indication, relationship = "many-to-many") |>
     dplyr::select(drug_name, 
                   drug_synonyms,
                   drug_tradenames, 
