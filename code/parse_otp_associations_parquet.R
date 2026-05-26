@@ -1,6 +1,6 @@
 #!/usr/local/bin/Rscript
 
-release <- '2025.12'
+release <- '2026.03'
 
 otp_assoc_data <- list()
 otp_assoc_data[['release']] <- release
@@ -14,6 +14,30 @@ otp_assoc_data[['target']] <- readRDS(
     paste0("opentargets_target_",release,".rds")))
 
 
+parse_association_data <- function(
+    parquet_fname = NULL, 
+    assoc_type = "association_overall", 
+    idx = 0){
+  cat(paste0(
+    'Loading OTP assocation data - ',
+    assoc_type,' - chunk ',idx))
+  cat('\n')
+  
+  association_data <- as.data.frame(
+    arrow::read_parquet(parquet_fname)) |>
+    dplyr::select(-c("timeseries","currentNovelty")) |>
+    dplyr::rename(
+      disease_id = diseaseId,
+      target_id = targetId,
+      aggregation_type = aggregationType,
+      aggregation_value = aggregationValue,
+      association_score = associationScore,
+      evidence_count = evidenceCount
+    )
+  
+  return(association_data)
+}
+
 ####---- ASSOCIATIONS - OVERALL ----####
 
 basepath <- file.path(here::here(), "data", 
@@ -23,20 +47,14 @@ parquet_files <- sort(
              all.files = T, full.names = T))
 m <- 0
 for(parquet_fname in parquet_files){
-  cat(paste0('Chunk - association_overall - ',m))
-  cat('\n')
+  association_data <- 
+    parse_association_data(
+      parquet_fname, "overall", idx = m)
   
-  # Read the parquet file and iterate through each row
-  association_data <- as.data.frame(
-    arrow::read_parquet(parquet_fname)) |>
-    dplyr::rename(
-      disease_id = diseaseId,
-      target_id = targetId,
-      evidence_count = evidenceCount
-    )
   otp_assoc_data[['overall']] <- 
     dplyr::bind_rows(
-      otp_assoc_data[['overall']], association_data
+      otp_assoc_data[['overall']], 
+      association_data
     )
   m <- m + 1
 }
@@ -51,23 +69,15 @@ parquet_files <- sort(
 m <- 0
 OT_datasource_assocs <- data.frame()
 for(parquet_fname in parquet_files){
+  
+  association_data <- 
+    parse_association_data(
+      parquet_fname, "by_datasource", idx = m)
 
-  cat(paste0('Chunk - association_by_datasource - ',m))
-  cat('\n')
-  
-  datasource_assoc_df <- as.data.frame(
-    arrow::read_parquet(parquet_fname)) |>
-    dplyr::rename(
-      datatype_id = datatypeId,
-      datasource_id = datasourceId,
-      disease_id = diseaseId,
-      target_id = targetId,
-      evidence_count = evidenceCount
-    )
-  
   otp_assoc_data[['datasource']] <- 
     dplyr::bind_rows(
-      otp_assoc_data[['datasource']], datasource_assoc_df
+      otp_assoc_data[['datasource']], 
+      association_data
     )
   m <- m + 1
 }
@@ -82,21 +92,14 @@ parquet_files <- sort(
 m <- 0
 for(parquet_fname in parquet_files){
 
-  cat(paste0('Chunk - association_by_datatype - ',m))
-  cat('\n')
-  
-  assoc_dtype_df <- as.data.frame(
-    arrow::read_parquet(parquet_fname)) |>
-    dplyr::rename(
-      datatype_id = datatypeId,
-      disease_id = diseaseId,
-      target_id = targetId,
-      evidence_count = evidenceCount
-    )
+  association_data <- 
+    parse_association_data(
+      parquet_fname, "by_datatype", idx = m)
   
   otp_assoc_data[['datatype']] <- 
     dplyr::bind_rows(
-      otp_assoc_data[['datatype']], assoc_dtype_df
+      otp_assoc_data[['datatype']], 
+      association_data
     )
   m <- m + 1
 }
@@ -135,28 +138,37 @@ for(parquet_fname in parquet_files){
 
 otp_assoc_data[['datatype']] <- as.data.frame(
   otp_assoc_data[['datatype']] |>
-    dplyr::mutate(score = round(score, digits = 12)) |>
+    dplyr::mutate(association_score = round(
+      association_score, digits = 6)) |>
     dplyr::mutate(datatype_support = paste0(
-      datatype_id,"|",evidence_count,"|",score)) |>
+      aggregation_value,"|",
+      evidence_count,"|",
+      association_score)) |>
     dplyr::group_by(disease_id, target_id) |>
-    dplyr::summarise(datatype_items = paste(datatype_support, collapse=","),
-                     .groups = "drop")
+    dplyr::summarise(
+      datatype_items = paste(datatype_support, collapse=","),
+      .groups = "drop")
 )
 
 otp_assoc_data[['datasource']] <- as.data.frame(
   otp_assoc_data[['datasource']] |>
-    dplyr::mutate(score = round(score, digits = 12)) |>
+    dplyr::mutate(association_score = round(
+      association_score, digits = 6)) |>
     dplyr::mutate(datasource_support = paste0(
-      datasource_id,"|",evidence_count,"|",score)) |>
+      aggregation_value,"|",
+      evidence_count,"|",
+      association_score)) |>
     dplyr::group_by(disease_id, target_id) |>
     dplyr::summarise(
-      datasource_items = paste(datasource_support, collapse=","),
+      datasource_items = paste(
+        datasource_support, collapse=","),
       .groups = "drop")
 )
 
 OT_association_all <- as.data.frame(
   otp_assoc_data[['overall']] |>
-    dplyr::mutate(score = round(score, digits = 12)) |>
+    dplyr::mutate(association_score = round(
+      association_score, digits = 6)) |>
     dplyr::left_join(
       otp_assoc_data[['datatype']], 
       by = c("disease_id","target_id"),
@@ -213,7 +225,7 @@ OT_associations_single_types <- OT_association_all |>
   
 OT_association_hc <- OT_associations_single_types |>
   dplyr::bind_rows(OT_associations_multiple_types) |>
-  dplyr::arrange(dplyr::desc(score))
+  dplyr::arrange(dplyr::desc(association_score))
 
 saveRDS(OT_association_hc, 
         file = file.path(

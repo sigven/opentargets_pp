@@ -1,4 +1,4 @@
-release <- '2025.12'
+release <- '2026.03'
 
 ####---- GENE CROSSREF----####
 gene_oncox <- list()
@@ -80,23 +80,6 @@ for(parquet_fname in parquet_files){
       )
     
     hgnc_id <- NA
-    # if(is.list(target_item$dbXrefs)){
-    #   if(length(target_item$dbXrefs) > 0){
-    #     for(k in 1:length(target_item$dbXrefs)){
-    #       if(is.data.frame(target_item$dbXrefs[[k]])){
-    #         if(nrow(target_item$dbXrefs[[k]]) == 0){
-    #           next
-    #         }
-    #         for(j in 1:nrow(target_item$dbXrefs[[k]])){
-    #           if(target_item$dbXrefs[[k]][j,]$source == "HGNC"){
-    #             hgnc_id <- target_item$dbXrefs[[k]][j,]$id
-    #           }
-    #         }
-    #       }
-    #     }
-    #   }
-    # }
-    
     
     if (is.list(target_item$dbXrefs) && length(target_item$dbXrefs) > 0) {
       # Keep only non-empty data.frames
@@ -140,39 +123,6 @@ for(parquet_fname in parquet_files){
     }else{
       df$function_description <- NA
     }
-    
-    
-    # tractability <- list()
-    # tractability[['SM']] <- ""
-    # tractability[['AB']] <- ""
-    # tractability[['PR']] <- ""
-    # 
-    # tractability_small_molecule <- ""
-    # tractability_antibody <- ""
-    # tractability_protac <- ""
-    # if(!is.null(target_item$tractability) &
-    #    is.list(target_item$tractability)){
-    #   for(j in 1:length(target_item$tractability)){
-    #     tractability_item <- target_item$tractability[[j]]
-    #     if(is.data.frame(tractability_item)){
-    #       if(NROW(tractability_item) == 0){
-    #         next
-    #       }
-    #       for(k in 1:nrow(tractability_item)){
-    #         for(t in c('SM','AB','PR')){
-    #           if(tractability_item[k,]$modality == t &
-    #              tractability_item[k,]$value == T){
-    #             tractability[[t]] <- paste(
-    #               tractability[[t]], tractability_item[k,]$id,
-    #               sep = " <b>|</b> "
-    #             )
-    #           }
-    #         }
-    #       }
-    #     }
-    #   }
-    # }
-    
     
     tractability <- stats::setNames(as.list(rep("", 3)), c("SM", "AB", "PR"))
     
@@ -235,6 +185,7 @@ for(parquet_fname in parquet_files){
     }
     
     df$cancer_hallmark_function_summary <- NA
+    df$cancer_hallmark_role <- NA
     df$cancer_hallmark <- NA
     if(length(target_item$hallmarks) > 0){
       if(!is.null(target_item$hallmarks$cancerHallmarks) &
@@ -302,25 +253,43 @@ for(parquet_fname in parquet_files){
       if(!is.null(target_item$hallmarks$attributes)){
         
         summary_found <- 0
+        role_in_cancer <- c()
+        function_summary <- c()
         if(NROW(target_item$hallmarks$attributes[[1]]) > 0){
           for(v in 1:nrow(target_item$hallmarks$attributes[[1]])){
-            if(target_item$hallmarks$attributes[[1]][v,]$attribute_name == 
-               "function summary"){
-              summary_found <- 1
-              df$cancer_hallmark_function_summary <- 
-                target_item$hallmarks$attributes[[1]][v,]$description
+            if(isTRUE(target_item$hallmarks$attributes[[1]][v,]$name ==
+                      "function summary")){
+              function_summary <- c(
+                function_summary,
+                stringr::str_trim(
+                  target_item$hallmarks$attributes[[1]][v,]$description))
+            }
+            if(isTRUE(target_item$hallmarks$attributes[[1]][v,]$name ==
+                      "role in cancer")){
+              if(nchar(stringr::str_trim(
+                target_item$hallmarks$attributes[[1]][v,]$description)) < 30){
+                role_in_cancer <- c(
+                  role_in_cancer,
+                  stringr::str_trim(
+                    target_item$hallmarks$attributes[[1]][v,]$description))
+              }
             }
           }
         }
-        if(summary_found == 0){
-          df$cancer_hallmark_function_summary <- NA
+        if(length(function_summary) > 0){
+          df$cancer_hallmark_function_summary <- 
+            paste(function_summary, collapse = "|")
         }
-      }else{
-        df$cancer_hallmark_function_summary <- NA
+        if(length(role_in_cancer) > 0){
+          df$cancer_hallmark_role <- 
+            paste(unique(sort(role_in_cancer)), collapse = "|")
+          df$cancer_hallmark_role <- stringr::str_replace_all(
+            df$cancer_hallmark_role,
+            c("Oncogene" = "oncogene",
+              "TSG" = "tsg")
+          )
+        }
       }
-    }else{
-      df$cancer_hallmark_function_summary <- NA
-      df$cancer_hallmark <- NA
     }
     
     OT_target <- OT_target |>
