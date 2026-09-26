@@ -1,6 +1,6 @@
 #!/bin/sh
 
-release="26.06"
+release="26.09"
 
 rsync -rpltvz --delete rsync.ebi.ac.uk::pub/databases/opentargets/platform/$release/output/reactome .
 rsync -rpltvz --delete rsync.ebi.ac.uk::pub/databases/opentargets/platform/$release/output/go .

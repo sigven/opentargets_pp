@@ -1,6 +1,6 @@
 #!/usr/local/bin/Rscript
 
-release <- '2026.06'
+release <- '2026.09'
 
 otp_assoc_data <- list()
 otp_assoc_data[['release']] <- release

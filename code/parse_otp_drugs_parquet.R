@@ -1,6 +1,6 @@
 #!/usr/local/bin/Rscript
 
-release <- '2026.06'
+release <- '2026.09'
 
 OT_datasets <- list()
 OT_datasets[['molecule']] <- data.frame()
@@ -221,7 +221,7 @@ clinical_indication <-
       here::here(), "data",
       release,
       "clinical_indication",
-      "clinical_indication.parquet"))
+      "00000000.parquet"))
 
 clinical_target <-
   tibble::tibble(
@@ -230,7 +230,7 @@ clinical_target <-
         here::here(), "data",
         release,
         "clinical_target",
-        "clinical_target.parquet")) |>
+        "00000000.parquet")) |>
       dplyr::select(-c("diseases")) |>
       dplyr::rename(clinicalReportId = clinicalReportIds) |>
       dplyr::select(-c("id")) |>
@@ -248,20 +248,24 @@ clinical_report <-
         here::here(), "data",
         release,
         "clinical_report",
-        "clinical_report.parquet")) |>
+        "00000000.parquet")) |>
       dplyr::select(
         id,
         diseases,
         source,
+        origin,
         type,
         url,
         drugs,
-        hasExpertReview,
         clinicalStage) |>
+      # 26.09: `hasExpertReview` removed; old `type` (CLINICAL_TRIAL,
+      # DRUG_LABEL, ...) renamed `origin`; `type` is now INDICATION | SAFETY.
+      # Keep indication reports only (as before SAFETY reports existed).
+      dplyr::filter(type == "INDICATION") |>
+      dplyr::select(-type) |>
       dplyr::rename(
-        clinical_report_type = type,
+        clinical_report_type = origin,
         clinical_report_source = source,
-        clinical_report_expert_review = hasExpertReview,
         clinical_report_url = url,
         drug_clinical_stage_indication = clinicalStage) |>
       dplyr::mutate(
@@ -465,7 +469,6 @@ OT_drugs_complete <- result |>
   dplyr::select(
     molecule_chembl_id,
     parent_molecule_chembl_id,
-    clinical_report_expert_review,
     clinical_report_source,
     clinical_report_type,
     drug_name,
